@@ -1,0 +1,10 @@
+Script started on 2026-08-01 21:08:53+00:00 [COMMAND="~/go1.27rc2/bin/go run ." <not executed on terminal>]
+int         {"v":"1"}
+float       {"v":"2.5"}
+intSlice    error: json: cannot marshal from Go []int within "/v": invalid use of `string` tag option
+floatSlice  error: json: cannot marshal from Go []float64 within "/v": invalid use of `string` tag option
+intMap      error: json: cannot marshal from Go map[string]int within "/v": invalid use of `string` tag option
+floatMap    error: json: cannot marshal from Go map[string]float64 within "/v": invalid use of `string` tag option
+anyMap      error: json: cannot marshal from Go map[string]interface {} within "/v": invalid use of `string` tag option
+
+Script done on 2026-08-01 21:08:53+00:00 [COMMAND_EXIT_CODE="0"]
