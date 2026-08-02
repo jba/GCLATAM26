@@ -107,3 +107,24 @@ func countV2(r io.Reader, target string) (int, error) {
 		}
 	}
 }
+
+// countV2Token counts JSON string values equal to target using jsontext's
+// token API. Unlike countV2, it materializes each string token as a Go string
+// via Token.String(), which allocates — mirroring the v1 approach but on the
+// v2 decoder.
+func countV2Token(r io.Reader, target string) (int, error) {
+	dec := jsontext.NewDecoder(r)
+	n := 0
+	for {
+		tok, err := dec.ReadToken()
+		if err == io.EOF {
+			return n, nil
+		}
+		if err != nil {
+			return n, err
+		}
+		if tok.Kind() == '"' && tok.String() == target {
+			n++
+		}
+	}
+}

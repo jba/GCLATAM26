@@ -36,8 +36,9 @@ func benchmarkCount(b *testing.B, count func(io.Reader, string) (int, error)) {
 	}
 }
 
-func BenchmarkCountV1(b *testing.B) { benchmarkCount(b, countV1) }
-func BenchmarkCountV2(b *testing.B) { benchmarkCount(b, countV2) }
+func BenchmarkCountV1(b *testing.B)      { benchmarkCount(b, countV1) }
+func BenchmarkCountV2(b *testing.B)      { benchmarkCount(b, countV2) }
+func BenchmarkCountV2Token(b *testing.B) { benchmarkCount(b, countV2Token) }
 
 // TestSameCount verifies both implementations agree on escape-free input.
 func TestSameCount(t *testing.T) {
