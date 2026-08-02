@@ -31,6 +31,12 @@ type (
 	AnyMap struct {
 		V map[string]any `json:"v,string"`
 	}
+	String struct {
+		V string `json:"v,string"`
+	}
+	Bool struct {
+		V bool `json:"v,string"`
+	}
 )
 
 func show(name string, v any) {
@@ -50,4 +56,6 @@ func main() {
 	show("intMap", IntMap{map[string]int{"a": 7}})
 	show("floatMap", FloatMap{map[string]float64{"b": 8.5}})
 	show("anyMap", AnyMap{map[string]any{"c": 9, "d": []int{10, 11}}})
+	show("string", String{"hello"})
+	show("bool", Bool{true})
 }
