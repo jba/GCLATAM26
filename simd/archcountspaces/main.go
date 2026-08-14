@@ -11,6 +11,7 @@ package main
 
 import (
 	"fmt"
+	"math/bits"
 	"runtime"
 	"simd"
 	"slices"
@@ -24,23 +25,9 @@ func CountSpaces(b []byte) int {
 	width := spaces.Len()
 	scratch := make([]int8, width)
 
-	// The portable API has no mask-popcount, so we accumulate matches in a
-	// per-lane int8 vector. Mask8s.ToInt8s yields -1 for true lanes, so
-	// subtracting it adds 1 to each matching lane's counter. int8 counters
-	// saturate at 127, so flush to the scalar total periodically.
-	var acc simd.Int8s
-	count, since := 0, 0
-	flush := func() {
-		acc.Store(scratch)
-		for _, v := range scratch {
-			count += int(v) // acc holds +1 per match
-		}
-		acc = simd.Int8s{}
-		since = 0
-	}
-
 	// slices.Chunk yields width-sized chunks, with a possibly-short final
 	// chunk that folds the scalar tail into the same loop.
+	count := 0
 	for chunk := range slices.Chunk(b, width) {
 		var v simd.Uint8s
 		if len(chunk) == width {
@@ -49,13 +36,15 @@ func CountSpaces(b []byte) int {
 			// Short final chunk: zero-fill unused lanes (0x00 != ' ').
 			v, _ = simd.LoadUint8sPart(chunk)
 		}
-		acc = acc.Sub(v.Equal(spaces).ToInt8s())
-		if since++; since == 120 {
-			flush()
+		// Equal -> mask; ToInt8s sets matching lanes to -1 (0xFF, 8 set
+		// bits) and others to 0. Store to a slice and popcount: each match
+		// contributes exactly 8 bits, so divide the total by 8.
+		v.Equal(spaces).ToInt8s().Store(scratch)
+		for _, x := range scratch {
+			count += bits.OnesCount8(uint8(x))
 		}
 	}
-	flush()
-	return count
+	return count / 8
 }
 
 func main() {
