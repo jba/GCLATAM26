@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"runtime"
 	"simd"
+	"slices"
 )
 
 // CountSpaces returns the number of ' ' bytes in b using the portable
@@ -38,25 +39,22 @@ func CountSpaces(b []byte) int {
 		since = 0
 	}
 
-	i := 0
-	for ; i+width <= len(b); i += width {
-		v := simd.LoadUint8s(b[i:])
+	// slices.Chunk yields width-sized chunks, with a possibly-short final
+	// chunk that folds the scalar tail into the same loop.
+	for chunk := range slices.Chunk(b, width) {
+		var v simd.Uint8s
+		if len(chunk) == width {
+			v = simd.LoadUint8s(chunk)
+		} else {
+			// Short final chunk: zero-fill unused lanes (0x00 != ' ').
+			v, _ = simd.LoadUint8sPart(chunk)
+		}
 		acc = acc.Sub(v.Equal(spaces).ToInt8s())
 		if since++; since == 120 {
 			flush()
 		}
 	}
 	flush()
-
-	// Tail: load the remaining <width bytes (zero-filled) and count only
-	// the n valid lanes. Zero bytes never equal ' ', but restrict anyway.
-	if i < len(b) {
-		v, n := simd.LoadUint8sPart(b[i:])
-		v.Equal(spaces).ToInt8s().Store(scratch)
-		for _, x := range scratch[:n] {
-			count -= int(x)
-		}
-	}
 	return count
 }
 
