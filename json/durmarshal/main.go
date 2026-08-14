@@ -4,7 +4,8 @@
 //
 //   - default:  json.Marshal fails (no representation for time.Duration).
 //   - custom:   a json.MarshalFunc registered via json.WithMarshalers.
-//   - method:   a wrapper type implementing MarshalerTo (MarshalJSONTo).
+//   - marshalto: a json.MarshalToFunc (MarshalJSONTo style) registered
+//     via json.WithMarshalers, writing directly to the encoder.
 package main
 
 import (
@@ -19,23 +20,6 @@ type Task struct {
 	Name    string        `json:"name"`
 	Timeout time.Duration `json:"timeout"`
 	Elapsed time.Duration `json:"elapsed"`
-}
-
-// Duration is a time.Duration wrapper that implements json/v2's
-// MarshalerTo interface (the MarshalJSONTo method), writing itself as a
-// JSON string. This is the recommended, more performant alternative to
-// registering a MarshalFunc: the behavior travels with the type.
-type Duration time.Duration
-
-func (d Duration) MarshalJSONTo(enc *jsontext.Encoder) error {
-	return enc.WriteToken(jsontext.String(time.Duration(d).String()))
-}
-
-// StructTask mirrors Task but uses the self-marshaling Duration type.
-type StructTask struct {
-	Name    string   `json:"name"`
-	Timeout Duration `json:"timeout"`
-	Elapsed Duration `json:"elapsed"`
 }
 
 func main() {
@@ -64,17 +48,16 @@ func main() {
 	}
 	fmt.Printf("custom:  %s\n", customOut)
 
-	// Third approach: a wrapper type that implements MarshalerTo
-	// (MarshalJSONTo). No options needed at the call site — the type
-	// marshals itself.
-	structTask := StructTask{
-		Name:    "backup",
-		Timeout: Duration(90 * time.Minute),
-		Elapsed: Duration(1500 * time.Millisecond),
-	}
-	methodOut, err := json.Marshal(structTask)
+	// Third approach: also a custom marshaler (not a method on any type),
+	// but written in the MarshalJSONTo style using json.MarshalToFunc. The
+	// function writes directly to the jsontext.Encoder instead of returning
+	// bytes, which is more performant.
+	durMarshalerTo := json.MarshalToFunc(func(enc *jsontext.Encoder, d time.Duration) error {
+		return enc.WriteToken(jsontext.String(d.String()))
+	})
+	methodOut, err := json.Marshal(task, json.WithMarshalers(durMarshalerTo))
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("method:  %s\n", methodOut)
+	fmt.Printf("marshalto: %s\n", methodOut)
 }
