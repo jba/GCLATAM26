@@ -1,12 +1,17 @@
-// Command durmarshal registers a custom json/v2 marshaler for
-// time.Duration that encodes durations as their human-readable string
-// form (e.g. "1h30m0s") instead of the default integer nanoseconds.
+// Command durmarshal shows three ways to encode time.Duration values as
+// their human-readable string form (e.g. "1h30m0s") under json/v2, which
+// otherwise has no default representation for durations:
+//
+//   - default:  json.Marshal fails (no representation for time.Duration).
+//   - custom:   a json.MarshalFunc registered via json.WithMarshalers.
+//   - method:   a wrapper type implementing MarshalerTo (MarshalJSONTo).
 package main
 
 import (
 	"fmt"
 	"time"
 
+	"encoding/json/jsontext"
 	json "encoding/json/v2"
 )
 
@@ -14,6 +19,23 @@ type Task struct {
 	Name    string        `json:"name"`
 	Timeout time.Duration `json:"timeout"`
 	Elapsed time.Duration `json:"elapsed"`
+}
+
+// Duration is a time.Duration wrapper that implements json/v2's
+// MarshalerTo interface (the MarshalJSONTo method), writing itself as a
+// JSON string. This is the recommended, more performant alternative to
+// registering a MarshalFunc: the behavior travels with the type.
+type Duration time.Duration
+
+func (d Duration) MarshalJSONTo(enc *jsontext.Encoder) error {
+	return enc.WriteToken(jsontext.String(time.Duration(d).String()))
+}
+
+// StructTask mirrors Task but uses the self-marshaling Duration type.
+type StructTask struct {
+	Name    string   `json:"name"`
+	Timeout Duration `json:"timeout"`
+	Elapsed Duration `json:"elapsed"`
 }
 
 func main() {
@@ -41,4 +63,18 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("custom:  %s\n", customOut)
+
+	// Third approach: a wrapper type that implements MarshalerTo
+	// (MarshalJSONTo). No options needed at the call site — the type
+	// marshals itself.
+	structTask := StructTask{
+		Name:    "backup",
+		Timeout: Duration(90 * time.Minute),
+		Elapsed: Duration(1500 * time.Millisecond),
+	}
+	methodOut, err := json.Marshal(structTask)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("method:  %s\n", methodOut)
 }
