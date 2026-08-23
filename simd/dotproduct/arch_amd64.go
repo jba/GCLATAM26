@@ -12,8 +12,9 @@ func ArchDot(a, b []float32) float32 {
 		panic("slices must have the same length")
 	}
 	var acc archsimd.Float32x16
+	w := acc.Len() // lanes per iteration (16 for Float32x16)
 	i := 0
-	for ; i+16 <= len(a); i += 16 {
+	for ; i+w <= len(a); i += w {
 		va := archsimd.LoadFloat32x16(a[i:])
 		vb := archsimd.LoadFloat32x16(b[i:])
 		acc = va.MulAdd(vb, acc) // acc += va*vb
