@@ -24,9 +24,9 @@ func Dot(a, b []float32) float32 {
 		panic("slices must have the same length")
 	}
 	var acc simd.Float32s // running per-lane sums of a[i]*b[i]
-	var width int
-	width = acc.Len() // vector width chosen by the hardware at runtime
-	i := 0
+	width := acc.Len() // vector width chosen by the hardware at runtime
+	var i int
+	i = 0
 	for ; i+width <= len(a); i += width {
 		va := simd.LoadFloat32s(a[i:])
 		vb := simd.LoadFloat32s(b[i:])
