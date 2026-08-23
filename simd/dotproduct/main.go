@@ -26,8 +26,7 @@ func Dot(a, b []float32) float32 {
 	var acc simd.Float32s // running per-lane sums of a[i]*b[i]
 	width := acc.Len() // vector width chosen by the hardware at runtime
 	var i int
-	i = 0
-	for ; i+width <= len(a); i += width {
+	for i = 0; i+width <= len(a); i += width {
 		va := simd.LoadFloat32s(a[i:])
 		vb := simd.LoadFloat32s(b[i:])
 		acc = va.MulAdd(vb, acc) // acc += va*vb
