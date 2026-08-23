@@ -16,6 +16,7 @@ func boringDot(a, b []float32) float32 {
 }
 
 var impls = map[string]func(a, b []float32) float32{
+	"SeqDot":  SeqDot,
 	"Dot":     Dot,
 	"ArchDot": ArchDot,
 }

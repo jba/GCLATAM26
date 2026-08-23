@@ -1,8 +1,9 @@
 //go:build goexperiment.simd
 
-// Command dotproduct computes the dot product of two []float32 slices two
+// Command dotproduct computes the dot product of two []float32 slices three
 // ways:
 //
+//   - SeqDot is a plain sequential (scalar) loop, the reference version.
 //   - ArchDot uses the amd64-specific simd/archsimd package (AVX-512,
 //     16 floats/iteration) with a fused multiply-add and a pairwise-add
 //     horizontal reduction.
@@ -49,11 +50,25 @@ func Dot(a, b []float32) float32 {
 	return sum
 }
 
+// SeqDot returns the dot product of a and b with a plain sequential loop.
+// It serves as the scalar reference for the SIMD versions.
+func SeqDot(a, b []float32) float32 {
+	if len(a) != len(b) {
+		panic("slices must have the same length")
+	}
+	var sum float32
+	for i := range a {
+		sum += a[i] * b[i]
+	}
+	return sum
+}
+
 func main() {
 	a := []float32{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	b := []float32{10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
 	fmt.Printf("a: %v\nb: %v\n", a, b)
 	fmt.Printf("arch: %s\n", runtime.GOARCH)
+	fmt.Printf("SeqDot (scalar):  %g\n", SeqDot(a, b))
 	fmt.Printf("Dot (portable):   %g\n", Dot(a, b))
 	fmt.Printf("ArchDot (amd64):  %g\n", ArchDot(a, b))
 }
